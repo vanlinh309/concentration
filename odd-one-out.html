@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#eef5f1">
+<title>Odd One Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+  .task b { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All homework</a>
+  <header>
+    <h1>Odd One <span>Out</span></h1>
+    <div class="level-ctl" aria-label="Level">
+      <span class="lbl">Level</span>
+      <button class="icon-btn" id="lvlDown" aria-label="Easier level">−</button>
+      <span class="num" id="lvlNum">1</span>
+      <button class="icon-btn" id="lvlUp" aria-label="Harder level">+</button>
+    </div>
+  </header>
+
+  <div class="status">
+    <div class="task">Find the <span id="taskIcon"></span> <span class="dots" id="dots"></span></div>
+    <div class="meta"><span>⏱ <b id="time">0</b>s</span><span>Oops <b id="miss">0</b></span></div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" aria-label="Picture grid"></div>
+    <div class="overlay" id="overlay">
+      <h2 id="ovTitle">Which one is different?</h2>
+      <p id="ovText">All the pictures look the same, except a few. They can have a different color, a different size, or one tiny change. Look closely!</p>
+      <div class="stars" id="stars" hidden><span>★</span><span>★</span><span>★</span></div>
+      <button class="big-btn" id="ovBtn">Let's go!</button>
+      <button class="link-btn" id="ovAlt" hidden>Play this level again</button>
+    </div>
+  </div>
+
+  <div class="tools">
+    <button class="tool-btn" id="hintBtn" disabled>💡 Hint</button>
+    <button class="tool-btn check" id="checkBtn" disabled hidden>✓ Check</button>
+  </div>
+
+  <div class="result" id="result" hidden>
+    <p id="resultText"></p>
+    <div class="result-actions">
+      <button class="big-btn small" id="resNext">Next level</button>
+      <button class="link-btn" id="resAgain">Try again</button>
+    </div>
+  </div>
+
+  <footer>
+    <span class="tip">Color, size or a tiny detail. Look at each picture.</span>
+    <label><input type="checkbox" id="helper" autocomplete="off"> Show count &amp; Check button</label>
+    <label><input type="checkbox" id="sound" checked> Sounds</label>
+  </footer>
+</div>
+
+<script src="grid-game.js"></script>
+<script>
+  const D = '#1f2d2f'; // dark ink for eyes, spots and lines (same in both themes, drawn on coloured shapes)
+
+  // ---- Pictures (viewBox 0 0 24 24) ----
+  const eyeOpen = x => `<circle cx="${x}" cy="10" r="1.5" fill="${D}"/>`;
+  const eyeShut = x => `<path d="M${x - 1.8} 10h3.6" stroke="${D}" stroke-width="1.5" stroke-linecap="round"/>`;
+  const MOUTH = { smile: 'M7.5 14q4.5 4 9 0', frown: 'M7.5 17q4.5-3.5 9 0', flat: 'M8.5 15.5h7' };
+  const face = (c, { mouth = 'smile', left = true, right = true } = {}) =>
+    `<circle cx="12" cy="12" r="10" fill="${c}"/>` +
+    (left ? eyeOpen(8.5) : eyeShut(8.5)) + (right ? eyeOpen(15.5) : eyeShut(15.5)) +
+    `<path d="${MOUTH[mouth]}" fill="none" stroke="${D}" stroke-width="1.6" stroke-linecap="round"/>`;
+
+  const SPOTS = [[8.5, 11], [15.5, 11], [8, 15.5], [16, 15.5], [9.5, 19], [14.5, 19]];
+  const bug = (c, spots = 6) =>
+    `<circle cx="12" cy="5.5" r="3.6" fill="${D}"/>` +
+    `<circle cx="12" cy="13.5" r="8.5" fill="${c}"/>` +
+    `<path d="M12 5.5v16.5" stroke="${D}" stroke-width="1"/>` +
+    SPOTS.slice(0, spots).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.5" fill="${D}"/>`).join('');
+
+  const flower = (c, petals = 5, center = true) =>
+    Array.from({ length: petals }, (_, k) =>
+      `<ellipse cx="12" cy="6.3" rx="3.3" ry="5" fill="${c}" transform="rotate(${360 / petals * k} 12 12)"/>`).join('') +
+    (center ? `<circle cx="12" cy="12" r="3.2" fill="#fff3c4" stroke="${D}" stroke-width=".6"/>` : '');
+
+  // Each picture: how it normally looks, and its "tiny change" versions from easy (tier 0) to hard (tier 3).
+  const PICTURES = {
+    face:   { base: c => face(c), changes: [c => face(c, { mouth: 'frown' }), c => face(c, { left: false, right: false }), c => face(c, { left: false }), c => face(c, { mouth: 'flat' })] },
+    bug:    { base: c => bug(c), changes: [c => bug(c, 0), c => bug(c, 2), c => bug(c, 4), c => bug(c, 5)] },
+    flower: { base: c => flower(c), changes: [c => flower(c, 5, false), c => flower(c, 3), c => flower(c, 4), c => flower(c, 6)] }
+  };
+
+  const svg = (inner, size = 72) =>
+    `<svg viewBox="0 0 24 24" aria-hidden="true" style="width:${size}%;height:${size}%">${inner}</svg>`;
+  const hsl = (h, l) => `hsl(${h % 360} 65% ${l}%)`;
+
+  // ---- Levels ----
+  // The kind of difference rotates each level (colour → size → detail) and gets subtler every 3 levels.
+  const KINDS = ['color', 'size', 'detail'];
+  const TASK = { color: '<b>different color</b>', size: '<b>different size</b>', detail: '<b>tiny change</b>' };
+  const COLOR_TIERS = [h => hsl(h + 180, 55), h => hsl(h + 70, 55), h => hsl(h, 73), h => hsl(h, 66)];
+  const SIZE_TIERS = [[42, 100], [52, 92], [60], [64]]; // odd-one size in %, normal is 72%
+
+  startGridGame({
+    storageKey: 'oddOneLevel',
+    targetName: 'odd ones',
+    maxLevel: 12,
+    makeRound(level) {
+      const kind = KINDS[(level - 1) % 3];
+      const tier = Math.floor((level - 1) / 3);
+      const size = Math.min(4 + Math.floor((level - 1) * 0.5), 9);
+      const odd = 1 + tier;
+      const pic = PICTURES[pick(Object.keys(PICTURES))];
+      const hue = Math.floor(Math.random() * 360);
+      const color = hsl(hue, 55);
+
+      const normal = svg(pic.base(color));
+      const oddOne = () =>
+        kind === 'color' ? svg(pic.base(COLOR_TIERS[tier](hue))) :
+        kind === 'size'  ? svg(pic.base(color), pick(SIZE_TIERS[tier])) :
+                           svg(pic.changes[tier](color));
+
+      const oddSet = randomIndexes(size * size, odd);
+      const cells = Array.from({ length: size * size }, (_, i) => ({
+        html: oddSet.has(i) ? oddOne() : normal,
+        label: 'picture',
+        target: oddSet.has(i)
+      }));
+      return { cols: size, cells, taskHtml: TASK[kind] };
+    }
+  });
+</script>
+</body>
+</html>

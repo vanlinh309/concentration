@@ -65,7 +65,10 @@
     { href: 'find-the-stars.html', title: 'Find All the Stars', skill: 'Spot the target', key: 'findStarsLevel',
       text: 'Tap every 5-point star. Some shapes only look like stars.',
       pic: ['var(--shape-2)', 'var(--star)', 'var(--shape-1)', 'var(--shape-3)', 'var(--shape-4)', 'var(--star)', 'var(--star)', 'var(--shape-2)', 'var(--shape-1)']
-        .map(c => c === 'var(--star)' ? star(c) : dot(c)).join('') }
+        .map(c => c === 'var(--star)' ? star(c) : dot(c)).join('') },
+    { href: 'odd-one-out.html', title: 'Odd One Out', skill: 'Look closely', key: 'oddOneLevel',
+      text: 'Find the picture with a different color, size or a tiny change.',
+      pic: [0,0,0,0,0,0,0,1,0].map(d => dot(d ? 'var(--shape-1)' : 'var(--shape-2)')).join('') }
   ];
   const SOON = [
     { title: 'Red Light, Green Light', skill: 'Self-control', text: 'Tap on green. Freeze on red.' },
