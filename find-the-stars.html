@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#eef5f1">
+<title>Find All the Stars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700&display=swap">
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All homework</a>
+  <header>
+    <h1>Find All the <span>Stars</span></h1>
+    <div class="level-ctl" aria-label="Level">
+      <span class="lbl">Level</span>
+      <button class="icon-btn" id="lvlDown" aria-label="Easier level">−</button>
+      <span class="num" id="lvlNum">1</span>
+      <button class="icon-btn" id="lvlUp" aria-label="Harder level">+</button>
+    </div>
+  </header>
+
+  <div class="status">
+    <div class="task">Find every <span id="taskIcon"></span> <span class="dots" id="dots"></span></div>
+    <div class="meta"><span>⏱ <b id="time">0</b>s</span><span>Oops <b id="miss">0</b></span></div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" aria-label="Shape grid"></div>
+    <div class="overlay" id="overlay">
+      <h2 id="ovTitle">Star hunt!</h2>
+      <p id="ovText">Some shapes are stars with 5 points. Find every one. Watch out, some shapes only look like stars!</p>
+      <div class="stars" id="stars" hidden><span>★</span><span>★</span><span>★</span></div>
+      <button class="big-btn" id="ovBtn">Let's go!</button>
+      <button class="link-btn" id="ovAlt" hidden>Play this level again</button>
+    </div>
+  </div>
+
+  <div class="tools">
+    <button class="tool-btn" id="hintBtn" disabled>💡 Hint</button>
+    <button class="tool-btn check" id="checkBtn" disabled hidden>✓ Check</button>
+  </div>
+
+  <div class="result" id="result" hidden>
+    <p id="resultText"></p>
+    <div class="result-actions">
+      <button class="big-btn small" id="resNext">Next level</button>
+      <button class="link-btn" id="resAgain">Try again</button>
+    </div>
+  </div>
+
+  <footer>
+    <span class="tip">Count the points: a real star has 5.</span>
+    <label><input type="checkbox" id="helper" autocomplete="off"> Show count &amp; Check button</label>
+    <label><input type="checkbox" id="sound" checked> Sounds</label>
+  </footer>
+</div>
+
+<script src="grid-game.js"></script>
+<script>
+  // Star-like polygon with n points; inner = inner radius as a share of the outer one.
+  const poly = (n, inner) => {
+    const pts = [];
+    for (let k = 0; k < n * 2; k++) {
+      const r = k % 2 ? 10 * inner : 10, a = -Math.PI / 2 + k * Math.PI / n;
+      pts.push((12 + r * Math.cos(a)).toFixed(2) + ',' + (12 + r * Math.sin(a)).toFixed(2));
+    }
+    return `<polygon points="${pts.join(' ')}"/>`;
+  };
+  const SHAPES = {
+    star:     poly(5, 0.45),
+    circle:   '<circle cx="12" cy="12" r="9"/>',
+    square:   '<rect x="3.5" y="3.5" width="17" height="17" rx="3"/>',
+    heart:    '<path d="M12 21C6 16.8 2.5 13.4 2.5 9.2 2.5 6.3 4.7 4 7.4 4c1.9 0 3.6 1 4.6 2.6C13 5 14.7 4 16.6 4c2.7 0 4.9 2.3 4.9 5.2 0 4.2-3.5 7.6-9.5 11.8z"/>',
+    triangle: '<polygon points="12,3 21.5,20 2.5,20"/>',
+    moon:     '<path d="M15.5 2.5a9.5 9.5 0 1 0 6 16.5A8 8 0 0 1 15.5 2.5z"/>',
+    sparkle:  poly(4, 0.38), // look-alike: 4 points
+    star6:    poly(6, 0.55)  // look-alike: 6 points
+  };
+  const LABELS = { star: 'star', circle: 'circle', square: 'square', heart: 'heart', triangle: 'triangle', moon: 'moon', sparkle: 'sparkle', star6: 'six-point star' };
+  const COLORS = ['var(--shape-1)', 'var(--shape-2)', 'var(--shape-3)', 'var(--shape-4)'];
+
+  const shape = (name, color, deg = 0) =>
+    `<svg viewBox="0 0 24 24" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round" aria-hidden="true" style="transform:rotate(${deg}deg)">${SHAPES[name]}</svg>`;
+
+  startGridGame({
+    storageKey: 'findStarsLevel',
+    targetName: 'stars',
+    maxLevel: 12,
+    makeRound(level) {
+      const size = Math.min(4 + Math.floor((level - 1) * 0.55), 9);
+      const count = Math.min(3 + Math.floor((level - 1) / 2), 9);
+      // Difficulty steps:
+      //  L1-2 simple shapes in other colours · L3 more shapes · L4 4-point sparkle
+      //  L5 everything turns gold (shape only) · L6 6-point star · L7+ shapes are tilted
+      const pool = ['circle', 'square', 'heart'];
+      if (level >= 3) pool.push('triangle', 'moon');
+      if (level >= 4) pool.push('sparkle', 'sparkle');
+      if (level >= 6) pool.push('star6', 'star6');
+      const sameColor = level >= 5;
+      const tilt = () => level >= 7 ? Math.floor(Math.random() * 72) : 0;
+
+      const starSet = randomIndexes(size * size, count);
+      const cells = Array.from({ length: size * size }, (_, i) => {
+        const isStar = starSet.has(i);
+        const name = isStar ? 'star' : pick(pool);
+        const color = isStar || sameColor ? 'var(--star)' : pick(COLORS);
+        return { html: shape(name, color, tilt()), label: LABELS[name], target: isStar };
+      });
+      return { cols: size, cells, taskHtml: shape('star', 'var(--star)') };
+    }
+  });
+</script>
+</body>
+</html>

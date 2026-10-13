@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#eef5f1">
+<title>Focus Homework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700&display=swap">
+<link rel="stylesheet" href="common.css">
+<style>
+  .app { max-width: 760px; }
+  .intro { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.5; max-width: 52ch; }
+  .group-title {
+    margin: 8px 0 0; font: 700 .8rem var(--font-display);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .card {
+    display: flex; flex-direction: column; gap: 10px; min-width: 0;
+    background: var(--surface); border-radius: 20px; padding: 18px;
+    color: inherit; text-decoration: none;
+    box-shadow: 0 2px 0 var(--line), 0 10px 30px -20px rgba(20,60,60,.35);
+    transition: transform .15s;
+  }
+  @media (hover: hover) { a.card:hover { transform: translateY(-3px); } }
+  a.card:active { transform: scale(.98); }
+  a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .card .pic { width: 64px; height: 64px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .card .pic svg { width: 100%; height: 100%; }
+  .card h2 { margin: 0; font: 800 1.35rem/1.1 var(--font-display); }
+  .card p { margin: 0; color: var(--muted); line-height: 1.4; }
+  .card .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 4px; }
+  .skill { font: 700 .75rem var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--arrow); }
+  .play { font: 800 1rem var(--font-display); color: var(--accent); white-space: nowrap; }
+  .card.soon { opacity: .6; box-shadow: none; border: 2px dashed var(--line); background: transparent; }
+  .card.soon .play { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header><h1>Focus <span>Homework</span></h1></header>
+  <p class="intro">Short games that train careful looking and calm tapping. Each one takes a few minutes. Pick one and play.</p>
+
+  <h3 class="group-title">Ready to play</h3>
+  <div class="list" id="ready"></div>
+
+  <h3 class="group-title">Coming soon</h3>
+  <div class="list" id="soon"></div>
+</div>
+
+<script>
+  const arrow = (deg, color) => `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${deg}deg)"><path d="M20 12H5"/><path d="M11 5l-7 7 7 7"/></svg>`;
+  const star = color => `<svg viewBox="0 0 24 24" fill="${color}"><polygon points="12,2 14.6,8.4 21.5,8.9 16.2,13.3 17.9,20.1 12,16.4 6.1,20.1 7.8,13.3 2.5,8.9 9.4,8.4"/></svg>`;
+  const dot = color => `<svg viewBox="0 0 24 24" fill="${color}"><circle cx="12" cy="12" r="8"/></svg>`;
+
+  // To add a homework: create its .html page, then add an entry here.
+  const HOMEWORK = [
+    { href: 'odd-arrow-out.html', title: 'Odd Arrow Out', skill: 'Spot the difference', key: 'oddArrowLevel',
+      text: 'Find the arrows that point the other way.',
+      pic: [0,0,0,0,180,0,0,0,0].map(d => arrow(d, d ? 'var(--accent)' : 'var(--arrow)')).join('') },
+    { href: 'find-the-stars.html', title: 'Find All the Stars', skill: 'Spot the target', key: 'findStarsLevel',
+      text: 'Tap every 5-point star. Some shapes only look like stars.',
+      pic: ['var(--shape-2)', 'var(--star)', 'var(--shape-1)', 'var(--shape-3)', 'var(--shape-4)', 'var(--star)', 'var(--star)', 'var(--shape-2)', 'var(--shape-1)']
+        .map(c => c === 'var(--star)' ? star(c) : dot(c)).join('') }
+  ];
+  const SOON = [
+    { title: 'Red Light, Green Light', skill: 'Self-control', text: 'Tap on green. Freeze on red.' },
+    { title: 'Number Path', skill: 'Stay focused', text: 'Tap the numbers 1 to 20 in order.' },
+    { title: 'Remember the Pattern', skill: 'Memory', text: 'Watch the tiles light up, then repeat them.' }
+  ];
+
+  const level = key => { try { return parseInt(localStorage.getItem(key)) || 1; } catch { return 1; } };
+
+  document.getElementById('ready').innerHTML = HOMEWORK.map(h => `
+    <a class="card" href="${h.href}">
+      <div class="pic" aria-hidden="true">${h.pic}</div>
+      <h2>${h.title}</h2>
+      <p>${h.text}</p>
+      <div class="row"><span class="skill">${h.skill} · Level ${level(h.key)}</span><span class="play">Play →</span></div>
+    </a>`).join('');
+
+  document.getElementById('soon').innerHTML = SOON.map(h => `
+    <div class="card soon">
+      <h2>${h.title}</h2>
+      <p>${h.text}</p>
+      <div class="row"><span class="skill">${h.skill}</span><span class="play">Soon</span></div>
+    </div>`).join('');
+</script>
+</body>
+</html>
